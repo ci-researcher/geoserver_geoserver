@@ -1,15 +1,7 @@
 name: Linux Timezone Build
 
 on:
-  pull_request:
-    paths-ignore:
-      - 'doc/**'
-      - 'mkdocs.yml'
-      - 'requirements.txt'
-      - '.github/workflows/docs.yml'
-      - '**/src/main/resources/GeoServerApplication_*.properties'
-      - '!**/src/main/resources/GeoServerApplication_fr.properties'
-
+  workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -23,41 +15,43 @@ jobs:
       fail-fast: false
       matrix:
         timezone: ['America/St_Johns']
-        jdk: [ 17 ]
-        dist: [ 'temurin' ]
-        os: [ 'ubuntu-22.04' ]
+        jdk:
+          - 21
+          - 25
+        dist: ['temurin']
+        os: ['ubuntu-22.04']
     runs-on: ${{ matrix.os }}
-    
+
     steps:
-    - uses: actions/checkout@v6
-      with:
+      - uses: actions/checkout@v6
+        with:
         # 500 commits, set to 0 to get all
-        fetch-depth: 500
-    - name: Set up JDK ${{ matrix.jdk }}
-      uses: actions/setup-java@v5
-      with:
-        java-version: ${{ matrix.jdk }}
-        distribution: ${{ matrix.dist }}
-    - name: Set up Maven
-      uses: stCarolas/setup-maven@v5
-      with:
-        maven-version: 3.9.16
-    - name: Maven repository caching
-      uses: actions/cache@v5
-      with:
-        path: ~/.m2/repository
-        key: gs-${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          gs-${{ runner.os }}-maven-
-    - name: Set locale
-      run: |
-        echo "TZ=${{ matrix.timezone }}" >> $GITHUB_ENV
-        locale
-    - name: Build with Maven
-      run: |
-        mvn --version
-        mvn -B -ntp -U -T1C -fae -Prelease,pending -f src/pom.xml clean install
-    - name: Remove SNAPSHOT jars from repository
-      if: always()
-      run: |
-        find ~/.m2/repository -name "*SNAPSHOT*" -type d | xargs rm -rf {}
+          fetch-depth: 500
+      - name: Set up JDK ${{ matrix.jdk }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ matrix.jdk }}
+          distribution: temurin
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.16
+      - name: Maven repository caching
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: gs-${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            gs-${{ runner.os }}-maven-
+      - name: Set locale
+        run: |
+          echo "TZ=${{ matrix.timezone }}" >> $GITHUB_ENV
+          locale
+      - name: Build with Maven
+        run: |
+          mvn --version
+          mvn -B -ntp -U -T1C -fae -Prelease,pending -f src/pom.xml clean install
+      - name: Remove SNAPSHOT jars from repository
+        if: always()
+        run: |
+          find ~/.m2/repository -name "*SNAPSHOT*" -type d | xargs rm -rf {}
