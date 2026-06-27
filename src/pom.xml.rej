@@ -1,0 +1,8 @@
+@@ -1,5 +1,5 @@
+     <properties>
+-        <errorprone.version>2.10.0</errorprone.version>
++        <errorprone.version>2.36.0</errorprone.version>
+         <maven.compiler.source>11</maven.compiler.source>
+         <maven.compiler.target>11</maven.compiler.target>
+     </properties>
+\ No newline at end of line

@@ -9,6 +9,7 @@ concurrency:
 env:
   MAVEN_OPTS: -Xmx2g -Daether.connector.basic.threads=8 -Daether.metadataResolver.threads=8 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25 -Dmaven.wagon.http.retryHandler.count=3 -Dorg.slf4j.simpleLogger.showDateTime=true -Dorg.slf4j.simpleLogger.dateTimeFormat=HH:mm:ss,SSS -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dspotless.apply.skip=true
 
+  _JAVA_OPTIONS: --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.text=ALL-UNNAMED --add-opens java.base/java.math=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED --add-opens java.xml/jdk.xml.internal=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.jvm=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
 jobs:
   build:
     strategy:
@@ -17,50 +18,50 @@ jobs:
         # italian has . and , usage opposite to english, will add more languages as time allows for testing and fixing
         locale: [it_IT.UTF-8]
         jdk:
-          - 21
-          - 25
+        - 21
+        - 25
         dist: ['temurin']
         os: ['ubuntu-22.04']
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v6
-        with:
+    - uses: actions/checkout@v6
+      with:
         # 500 commits, set to 0 to get all
-          fetch-depth: 500
-      - name: Set up JDK ${{ matrix.jdk }}
-        uses: actions/setup-java@v5
-        with:
-          java-version: ${{ matrix.jdk }}
-          distribution: temurin
-      - name: Set up Maven
-        uses: stCarolas/setup-maven@v5
-        with:
-          maven-version: 3.9.16
-      - name: Maven repository caching
-        uses: actions/cache@v5
-        with:
-          path: ~/.m2/repository
-          key: gs-${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            gs-${{ runner.os }}-maven-
-      - name: Install locales
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y locales
-          sudo locale-gen en_US.UTF-8 it_IT.UTF-8 tr_TR.UTF-8
-          sudo update-locale
-      - name: Set locale
-        run: |
-          echo "LANG=${{ matrix.locale }}" >> $GITHUB_ENV
-          echo "LC_ALL=${{ matrix.locale }}" >> $GITHUB_ENV
-          echo "LC_NUMERIC=${{ matrix.locale }}" >> $GITHUB_ENV
-          locale
-      - name: Build with Maven
-        run: |
-          mvn --version
-          mvn -B -ntp -U -T1C -fae -Prelease,pending -f src/pom.xml clean install
-      - name: Remove SNAPSHOT jars from repository
-        if: always()
-        run: |
-          find ~/.m2/repository -name "*SNAPSHOT*" -type d | xargs rm -rf {}
+        fetch-depth: 500
+    - name: Set up JDK ${{ matrix.jdk }}
+      uses: actions/setup-java@v5
+      with:
+        java-version: ${{ matrix.jdk }}
+        distribution: temurin
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v5
+      with:
+        maven-version: 3.9.16
+    - name: Maven repository caching
+      uses: actions/cache@v5
+      with:
+        path: ~/.m2/repository
+        key: gs-${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          gs-${{ runner.os }}-maven-
+    - name: Install locales
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y locales
+        sudo locale-gen en_US.UTF-8 it_IT.UTF-8 tr_TR.UTF-8
+        sudo update-locale
+    - name: Set locale
+      run: |
+        echo "LANG=${{ matrix.locale }}" >> $GITHUB_ENV
+        echo "LC_ALL=${{ matrix.locale }}" >> $GITHUB_ENV
+        echo "LC_NUMERIC=${{ matrix.locale }}" >> $GITHUB_ENV
+        locale
+    - name: Build with Maven
+      run: |
+        mvn --version
+        mvn -B -ntp -U -T1C -fae -Prelease,pending -f src/pom.xml clean install -Dsurefire.useModulePath=false
+    - name: Remove SNAPSHOT jars from repository
+      if: always()
+      run: |
+        find ~/.m2/repository -name "*SNAPSHOT*" -type d | xargs rm -rf {}
